@@ -89,7 +89,7 @@ class Classifier {
   // Compute the probabilities
   probabilities() {
 
-    // Calculate all the frequences
+    // Calculate all the frequencies
     // word count / doc count
     this.wordList.forEach(key => {
       let word = this.dict[key];
@@ -103,10 +103,10 @@ class Classifier {
             };
         }
         // Average frequency per document
-        let taxonomy = word[category];
+        let wordCat = word[category];
         let cat = this.categories[category];
-        let freq = taxonomy.count / cat.docCount;
-        taxonomy.freq = freq;
+        let freq = wordCat.count / cat.docCount;
+        wordCat.freq = freq;
       });
     });
 
@@ -114,6 +114,8 @@ class Classifier {
       let word = this.dict[key];
       // Probability via Bayes rule
       this.categoryList.forEach(category => {
+        // Add frequencies together
+        // Starting at 0, p is the accumulator
         let sum = this.categoryList.reduce((p, cat) => {
             let freq = word[cat].freq;
             if (freq) {
@@ -121,10 +123,11 @@ class Classifier {
             }
             return p;
           }, 0);
-        let taxonomy = word[category];
+        let wordCat = word[category];
         // Constrain the probability
-        let prob = taxonomy.freq / sum;
-        taxonomy.prob = Math.max(0.01, Math.min(0.99, prob));
+        // TODO: Is there a better way to handle this?
+        let prob = wordCat.freq / sum;
+        wordCat.prob = Math.max(0.01, Math.min(0.99, prob));
       });
     });
   }
@@ -163,6 +166,8 @@ class Classifier {
 
     // Combined probabilities
     // http://www.paulgraham.com/naivebayes.html
+    // Multiply the probabilities and add the results to sum
+    // Starting with an empty object, product is the accumulator
     let sum = 0;
     let products = this.categoryList.reduce((product, category) => {
         product[category] = words.reduce((prob, word) => {
