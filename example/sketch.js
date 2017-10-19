@@ -1,15 +1,16 @@
 let classifier;
+
 function setup() {
   noCanvas();
 
   classifier = new Classifier();
 
-  classifier.train("I am happy.", "A");
-  classifier.train("I am sad and I am very sad.", "B");
-  classifier.train("I have mixed feelings.", "C");
+  // Text to train, followed by category name
+  classifier.train("I am happy.", "happy");
+  classifier.train("I am sad and I am very sad.", "sad");
+  classifier.train("I have mixed feelings.", "mixed");
   classifier.probabilities();
 
-  let category = classifier.guess("Yesterday, I was very happy.");
-  console.log(category);
-
+  let results = classifier.guess("Yesterday, I was very very happy, so happy.");
+  console.log(results);
 }

@@ -1,4 +1,5 @@
 # bayes-classifier-js
+
 A JavaScript library for Bayesisan classification
 
 Initial API ideas:
@@ -10,7 +11,8 @@ let classifier = new Classifier();
 classifier.train("I am happy.", "happy");
 classifier.train("I am sad and I am very sad.", "sad");
 classifier.train("I have mixed feelings.", "mixed");
+classifier.probabilities();
 
-let results = classifier.guess("Yesterday, I was very happy, very very very happy.");
+let results = classifier.guess("Yesterday, I was very very happy, so happy.");
 console.log(results);
 ```
