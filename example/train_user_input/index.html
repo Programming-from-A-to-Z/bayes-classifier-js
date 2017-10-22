@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>example</title>
+
+    <script src="../libraries/p5.js"></script>
+    <script src="../libraries/p5.dom.js"></script>
+    <script src="../../classifier.js"></script>
+    <script src="sketch.js"></script>
+    <style>
+        .green{
+            background-color: green;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>Bayes Classifier</h1>
+    <h2>Training</h2>
+    <label for="sentence">Sentence : </label>
+    <textarea name="sentence" id="sentence" cols="30" rows="5"></textarea>
+
+    <label for="categorie">Categories : </label>
+    <input type="text" name="categorie" id="categorie">
+    <button id="validate_train">Add</button>
+    
+    <h2>Your Data set</h2>
+    <ul id='data'>
+        
+    </ul>
+    <h2>Guess</h2>
+
+    <label for="sentence_gess">sentence : </label>
+    <input type="text" name="sentence_gess" id="sentence_gess">
+    <button id="guess">Guess</button>
+    <h4>Result : </h4>
+    <ul id="res_liste">
+        
+    </ul>
+
+</body>
+
+</html>
