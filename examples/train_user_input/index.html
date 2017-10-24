@@ -13,8 +13,8 @@
     <script src="../../classifier.js"></script>
     <script src="sketch.js"></script>
     <style>
-        .green{
-            background-color: green;
+        .winner {
+          font-weight: bold;
         }
     </style>
 
@@ -23,25 +23,25 @@
 <body>
     <h1>Bayes Classifier</h1>
     <h2>Training</h2>
-    <label for="sentence">Sentence : </label>
-    <textarea name="sentence" id="sentence" cols="30" rows="5"></textarea>
+    <label for="sentence">Text: </label><br/>
+    <textarea name="sentence" id="sentence" cols="30" rows="5"></textarea><br/>
 
-    <label for="categorie">Categories : </label>
-    <input type="text" name="categorie" id="categorie">
+    <label for="category">Category: </label>
+    <input type="text" name="category" id="category"><br/>
     <button id="validate_train">Add</button>
-    
+
     <h2>Your Data set</h2>
     <ul id='data'>
-        
+
     </ul>
     <h2>Guess</h2>
 
-    <label for="sentence_gess">sentence : </label>
-    <input type="text" name="sentence_gess" id="sentence_gess">
+    <label for="sentence_guess">sentence : </label>
+    <input type="text" name="sentence_guess" id="sentence_guess">
     <button id="guess">Guess</button>
-    <h4>Result : </h4>
-    <ul id="res_liste">
-        
+    <h4>Result: </h4>
+    <ul id="res_list">
+
     </ul>
 
 </body>
