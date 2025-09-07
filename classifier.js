@@ -1,192 +1,150 @@
-// A2Z F17
-// Daniel Shiffman
-// http://shiffman.net/a2z
-// https://github.com/shiffman/A2Z-F17
+// Simple Naive Bayes Text Classifier
+//
+// Bayes' theorem: P(A|B) = P(B|A) * P(A) / P(B)
+// For classification: P(category|text) = P(text|category) * P(category) / P(text)
+//
+// The "naive" assumption: words are independent of each other
+// So: P(text|category) = P(word1|category) * P(word2|category) * ...
 
-// An object that does classification with us of words
 class Classifier {
-
   constructor() {
+    // Dictionary to store word counts per category
+    // Structure: { word: { category1: count, category2: count, ... } }
+    // Example: { "happy": { "positive": 5, "negative": 1 } }
+    this.wordCounts = {};
 
-    // Word objects
-    // Category counts
-    // Category probabilities
-    this.dict = {};
-
-    // Each category
-    // total tokens
-    // total documents
+    // Store category statistics
+    // Structure: { category: { documentCount: N, wordCount: N } }
+    // documentCount: how many texts for this category
+    // wordCount: total words across all texts for this category
     this.categories = {};
 
-    // An array of just the words and categories for sorting
-    // This is redundant and could probably be removed
-    this.wordList = [];
-    this.categoryList = [];
+    // Total number of documents across all categories
+    this.totalDocuments = 0;
 
+    // Total unique words (vocabulary size)
+    // Used for Laplace smoothing to handle unseen words
+    this.vocabularySize = 0;
   }
 
-  // A function to validate a toke
-  static validate(token) {
-    // For now anything that doesn't have at least
-    // one word character is no good
-    return /\w+/.test(token);
-  }
-
-  // Increment a word for a category
-  increment(token, category) {
-
-    // Increase the token count
-    this.categories[category].tokenCount++;
-
-    let word = this.dict[token];
-
-    // Is this a new word?
-    if (word === undefined) {
-      this.dict[token] = {
-          word: token,
-          [category]: { count: 1 }
-        };
-      // Track the key
-      this.wordList.push(token);
-    } else if (word[category] === undefined) {
-      word[category] = {
-          count: 1
-        };
-    } else {
-      word[category].count++;
+  // Add a word to the vocabulary for a specific category
+  // This is called during training to build our word frequency database
+  addWord(word, category) {
+    // First time seeing this word? Add it to vocabulary
+    if (!this.wordCounts[word]) {
+      this.wordCounts[word] = {};
+      this.vocabularySize++;
     }
 
+    // Initialize count for this word in this category if needed
+    if (!this.wordCounts[word][category]) {
+      this.wordCounts[word][category] = 0;
+    }
+
+    // Increment: how many times this word appears in this category
+    this.wordCounts[word][category]++;
+
+    // Also increment total word count for this category
+    this.categories[category].wordCount++;
   }
 
-  // Get some data to train
-  train(data, category) {
-
-    if (this.categories[category] === undefined) {
+  // Train the classifier with a text sample and its category
+  train(text, category) {
+    // Initialize category if first time seeing it
+    if (!this.categories[category]) {
       this.categories[category] = {
-          docCount: 1,
-          tokenCount: 0
-        };
-      this.categoryList.push(category);
-    } else {
-      this.categories[category].docCount++;
+        documentCount: 0,
+        wordCount: 0,
+      };
     }
 
-    // Split into words
-    let tokens = data.split(/\W+/);
+    // Increment document count for this category
+    this.categories[category].documentCount++;
+    this.totalDocuments++;
 
-    // For every word
-    tokens.forEach(token => {
-      token = token.toLowerCase();
-      // Make sure it's ok
-      if (Classifier.validate(token)) {
-        // Increment it
-        this.increment(token, category);
+    // Split text into words and process each one
+    let words = text.toLowerCase().split(/\W+/);
+
+    for (let word of words) {
+      if (validateWord(word)) {
+        this.addWord(word, category);
       }
-    });
-
+    }
   }
 
-  // Compute the probabilities
-  probabilities() {
+  // Calculate P(word|category)
+  // How likely is this word given the category?
+  wordProbability(word, category) {
+    // How many times did this word appear in this category?
+    // Is this a word we've seen?
+    let wordCount = 0;
+    if (this.wordCounts[word] && this.wordCounts[word][category]) {
+      wordCount = this.wordCounts[word][category];
+    }
 
-    // Calculate all the frequencies
-    // word count / doc count
-    this.wordList.forEach(key => {
-      let word = this.dict[key];
+    // Total words in this category
+    let categoryWordCount = this.categories[category].wordCount;
 
-      this.categoryList.forEach(category => {
-        // If this word has no count for the category set it to 0
-        // TODO: better place to do this or unecessary?
-        if (word[category] === undefined) {
-          word[category] = {
-              count: 0
-            };
-        }
-        // Average frequency per document
-        let wordCat = word[category];
-        let cat = this.categories[category];
-        let freq = wordCat.count / cat.docCount;
-        wordCat.freq = freq;
-      });
-    });
+    // LAPLACE SMOOTHING (add-one smoothing):
+    // We add 1 to this word's count to prevent zero probabilities
+    // But we also add vocabularySize to denominator since we are essentially
+    // adding 1 count for every possible word
 
-    this.wordList.forEach(key => {
-      let word = this.dict[key];
-      // Probability via Bayes rule
-      this.categoryList.forEach(category => {
-        // Add frequencies together
-        // Starting at 0, p is the accumulator
-        let sum = this.categoryList.reduce((p, cat) => {
-            let freq = word[cat].freq;
-            if (freq) {
-              return p + freq;
-            }
-            return p;
-          }, 0);
-        let wordCat = word[category];
-        // Constrain the probability
-        // TODO: Is there a better way to handle this?
-        let prob = wordCat.freq / sum;
-        wordCat.prob = Math.max(0.01, Math.min(0.99, prob));
-      });
-    });
+    // Example: Category has 500 real words, vocabulary has 1000 unique words
+    //   P("amazing") = (0 + 1) / (500 + 1000) = 1/1500 (unseen word)
+    //   P("happy") = (10 + 1) / (500 + 1000) = 11/1500 (seen 10 times)
+    //   All 1000 word probabilities will sum to exactly 1.0 ✓
+    return (wordCount + 1) / (categoryWordCount + this.vocabularySize);
   }
 
-  // Now we have some data we need to guess
-  guess(data) {
+  // Calculate P(category) - the prior probability of each category
+  // This is how common each category is in our training data
+  categoryProbability(category) {
+    return this.categories[category].documentCount / this.totalDocuments;
+  }
 
-    // All the tokens
-    let tokens = data.split(/\W+/);
+  // Classify new text using Naive Bayes theorem
+  // Returns probability that the text belongs to each category
+  guess(text) {
+    // Clean and split the input text into words
+    let words = text.toLowerCase().split(/\W+/);
+    // Only validated words
+    words = words.filter((word) => validateWord(word));
 
-    // Now let's collect all the probability data
-    let words = [];
-
-    // TODO: If a word appears more than once should I add it just once or
-    // the number of times it appears?
-    // let hash = {};
-
-    tokens.forEach(token => {
-      token = token.toLowerCase();
-      if (Classifier.validate(token)) {
-        // Collect the probability
-        if (this.dict[token] !== undefined) { // && !hash[token]) {
-          let word = this.dict[token];
-          words.push(word);
-        }
-        // hash[token] = true;
-      } else {
-        // For an unknown word
-        // We could just not include this (would be simpler)
-        // Or we might decide that unknown words are likely to be a certain category?
-        // word = {};
-        // fill in probabilities
-        // words.push(word);
-      }
-    });
-
-    // Combined probabilities
-    // http://www.paulgraham.com/naivebayes.html
-    // Multiply the probabilities and add the results to sum
-    // Starting with an empty object, product is the accumulator
-    let sum = 0;
-    let products = this.categoryList.reduce((product, category) => {
-        product[category] = words.reduce((prob, word) => {
-            // Multiply probabilities together
-            return prob * word[category].prob;
-          }, 1);
-        sum += product[category];
-        return product;
-      }, {});
-
-    // Apply formula
     let results = {};
-    this.categoryList.forEach(category => {
-      results[category] = {
-          probability: products[category] / sum
-        };
-      // TODO: include the relevant words and their scores/probabilities in the results?
-    });
+
+    // Calculate probability for each category we've trained on
+    let categories = Object.keys(this.categories);
+
+    for (let category of categories) {
+      // Start with the prior probability P(category)
+      // How common is this category in our training data?
+      let probability = this.categoryProbability(category);
+
+      // For each word, multiply by P(word|category)
+      // This assumes words are independent (the "naive" assumption)
+      for (let word of words) {
+        probability *= this.wordProbability(word, category);
+      }
+
+      results[category] = { probability: probability };
+    }
+
+    // NORMALIZATION: Make all probabilities sum to 1
+    // This converts raw scores to proper probabilities
+    let probabilitySum = 0;
+    for (let category of categories) {
+      probabilitySum += results[category].probability;
+    }
+    for (let category of categories) {
+      results[category].probability /= probabilitySum;
+    }
     return results;
   }
+}
 
+// Check if a word token is valid (contains letters/numbers)
+// Filters out punctuation and empty strings
+function validateWord(token) {
+  return /\w+/.test(token);
 }
